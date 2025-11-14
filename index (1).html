@@ -1,0 +1,142 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Heart with Smooth Day/Night Sky</title>
+<style>
+html,body{height:100%;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,"Helvetica Neue",Arial;overflow:hidden;}
+.sky{position:absolute;width:100%;height:100%;transition:background 0.5s;z-index:0;}
+.stars{position:absolute;width:100%;height:100%;pointer-events:none;opacity:0;transition:opacity 0.5s;z-index:1;}
+.star{position:absolute;width:2px;height:2px;background:white;border-radius:50%;opacity:0.7;}
+.grass{position:absolute;bottom:0;width:100%;height:35%;background:linear-gradient(to top,#2e8b57 0%,#66cdaa 100%);box-shadow:inset 0 -10px 20px rgba(0,0,0,0.3);z-index:2;}
+.sun,.moon{position:absolute;border-radius:50%;z-index:3;}
+.sun{width:80px;height:80px;background:radial-gradient(circle,#fff700,#ffcc00);box-shadow:0 0 40px rgba(255,255,0,0.5);}
+.moon{width:60px;height:60px;background:radial-gradient(circle,#f0f0f0,#cccccc);box-shadow:0 0 30px rgba(255,255,255,0.3);}
+main.heart-wrap{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);display:grid;place-items:center;gap:1rem;text-align:center;cursor:pointer;z-index:5;}
+.heart{width:200px;height:200px;display:block;filter:drop-shadow(0 8px 18px rgba(0,0,0,0.12));transition: transform 0.2s ease;}
+.heart-wrap:hover .heart{transform:scale(1.05);}
+.heart path{fill:#ff4d6d;}
+.caption{color:#333;opacity:0.9;font-size:16px;}
+@media (max-width:420px){.heart{width:140px;height:140px}.caption{font-size:14px}}
+.modal-bg{position:fixed;inset:0;background:rgba(0,0,0,0.45);display:none;align-items:center;justify-content:center;z-index:6;}
+.modal{background:white;padding:2rem;border-radius:1rem;max-width:350px;text-align:center;box-shadow:0 10px 24px rgba(0,0,0,0.15);animation:pop 0.25s ease;}
+@keyframes pop{from{transform:scale(0.8);opacity:0}to{transform:scale(1);opacity:1}}
+.close-btn{margin-top:1rem;padding:0.5rem 1rem;border:none;background:#ff4d6d;color:white;border-radius:0.5rem;cursor:pointer;font-size:1rem;}
+</style>
+</head>
+<body>
+<div class="sky"></div>
+<div class="stars"></div>
+<div class="grass"></div>
+<div class="sun"></div>
+<div class="moon"></div>
+
+<main class="heart-wrap" role="button" id="heartBtn">
+  <svg class="heart" viewBox="0 0 24 24" aria-hidden="false" role="img" xmlns="http://www.w3.org/2000/svg">
+    <title>Heart</title>
+    <path d="M12 21s-7.5-5.2-10-8.2C-0.2 8.3 3.3 3 8.6 4.5 10.6 5.1 12 7 12 7s1.4-1.9 3.4-2.5C20.7 3 24.2 8.3 22 12.8 19.5 15.8 12 21 12 21z"/>
+  </svg>
+  <div class="caption">Click the heart ❤️</div>
+</main>
+
+<audio id="loveSong" src="https://raw.githubusercontent.com/secret-admirer-letters/Jewel-manjares/main/Hooked%20-%20Why%20Don't%20We%20%5BOfficial%20Music%20Video%5D.mp3"></audio>
+
+<!-- Modal -->
+<div class="modal-bg" id="modalBg">
+  <div class="modal">
+    <p>I love you. ❤️<br>Baby Jewel ❤️</p>
+    <button class="close-btn" id="closeBtn">Close</button>
+  </div>
+</div>
+
+<script>
+// Heart modal
+const heartBtn=document.getElementById('heartBtn');
+const modalBg=document.getElementById('modalBg');
+const closeBtn=document.getElementById('closeBtn');
+const song=document.getElementById('loveSong');
+
+heartBtn.addEventListener('click',()=>{modalBg.style.display='flex';song.play();});
+closeBtn.addEventListener('click',()=>{modalBg.style.display='none';song.pause();song.currentTime=0;});
+modalBg.addEventListener('click',(e)=>{if(e.target===modalBg) modalBg.style.display='none';});
+
+// Sun & Moon animation
+const sun=document.querySelector('.sun');
+const moon=document.querySelector('.moon');
+const sky=document.querySelector('.sky');
+const starsContainer=document.querySelector('.stars');
+
+// create stars
+for(let i=0;i<150;i++){
+  const star=document.createElement('div');
+  star.classList.add('star');
+  star.style.top=Math.random()*70+'%';
+  star.style.left=Math.random()*100+'%';
+  star.style.opacity=Math.random()*0.8+0.2;
+  starsContainer.appendChild(star);
+}
+
+const width=window.innerWidth;
+const height=window.innerHeight;
+const pathY=height/3;
+const cycleTime=11000;
+let startTime=Date.now();
+
+// Sky gradient colors
+const colors = {
+  sunrise:[255,153,51], // orange
+  day:[135,206,235],    // blue
+  sunset:[255,102,51],  // red-orange
+  night:[0,29,61]       // dark blue
+};
+
+function lerp(a,b,t){return a+(b-a)*t;}
+function lerpColor(c1,c2,t){return `rgb(${Math.round(lerp(c1[0],c2[0],t))},${Math.round(lerp(c1[1],c2[1],t))},${Math.round(lerp(c1[2],c2[2],t))})`;}
+
+// Smooth sky function
+function getSkyColor(progress){
+  if(progress<0.25) return lerpColor(colors.sunrise,colors.day,progress*4); // sunrise -> day
+  else if(progress<0.5) return lerpColor(colors.day,colors.sunset,(progress-0.25)*4); // day -> sunset
+  else if(progress<0.75) return lerpColor(colors.sunset,colors.night,(progress-0.5)*4); // sunset -> night
+  else return lerpColor(colors.night,colors.sunrise,(progress-0.75)*4); // night -> sunrise
+}
+
+function animate(){
+  const now=Date.now();
+  const elapsed=now-startTime;
+  let progress=(elapsed%cycleTime)/cycleTime;
+
+  // Sun rises for first half, moon for second half
+  const sunX=progress*(width+100)-50;
+  const sunY=pathY-Math.sin(progress*Math.PI)*120;
+
+  const moonX=sunX;
+  const moonY=sunY;
+
+  if(progress<0.5){
+    sun.style.left=sunX+'px';
+    sun.style.top=sunY+'px';
+    sun.style.opacity=1;
+    moon.style.opacity=0;
+  } else {
+    moon.style.left=moonX+'px';
+    moon.style.top=moonY+'px';
+    moon.style.opacity=1;
+    sun.style.opacity=0;
+  }
+
+  // Smooth sky color
+  const skyColor=getSkyColor(progress);
+  sky.style.background=`linear-gradient(to top, ${skyColor} 0%, ${skyColor} 100%)`;
+
+  // Stars fade in/out
+  starsContainer.style.opacity=progress<0.5?0:Math.min((progress-0.5)*2,1);
+
+  requestAnimationFrame(animate);
+}
+
+animate();
+</script>
+</body>
+</html>
